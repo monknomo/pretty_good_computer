@@ -1,0 +1,297 @@
+<html>
+    <head>
+        <title>Pretty Good Computer</title>
+        <style>
+            body{
+                background:ghostwhite;
+            }
+            table {
+                border: thin solid black;
+            }
+            td {
+                border:thin solid black;
+            }
+            td.odd {
+                background:PowderBlue;
+            }
+            td.even {
+                background:ghostwhite;
+            }
+            #container{
+                width:100%;
+                clear:both;
+            }
+            .left{               
+                float:left;
+                 width:30%;
+                 padding:1em;
+            }
+            .right{               
+                float:left;
+                border-left:solid black;                
+            }   
+            #prettyGoodComputerProgramEditor {
+                position: relative;
+                width: 20em;
+                height: 27em;;
+            }
+            .prettyGoodComputer {
+                margin:1em;
+                float:left;
+                clear:both;
+                width:100%;
+            }
+        </style>
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.1.9/ace.js"></script>
+        <script>
+            $(function(){
+                var prettyGoodComputer 
+                
+                = {
+                    editor: null,
+                    brk: false,
+                    addressableMemory: 16,
+                    initialize: function () {
+                        $("div#prettyGoodComputer").html("<div id='prettyGoodComputerMemory' class='prettyGoodComputer'></div><div id='prettyGoodComputerCompilerMessages' class='prettyGoodComputer'></div>\n<div id='prettyGoodComputerProgramEditor' class='prettyGoodComputer'></div><div id='prettyGoodComputerButtonHolder'  class='prettyGoodComputer'><button id='prettyGoodComputerRunProgramButton'>Run Me</button><button id='prettyGoodComputerBreakButton'>Break</button><br><button id='prettyGoodComputerShareButton'>Share</button></div>");
+
+                        var tableString = "<table><tr>";
+                        var cellClass = "";
+                        for (var i = 0; i < this.addressableMemory; i++) {
+                            if (i % 2 === 0) {
+                                cellClass = "even";
+                            } else {
+                                cellClass = "odd";
+                            }
+                            if (i < 10) {
+                                tableString += "<td class='" + cellClass + "'>0" + i + "</td>";
+                            } else {
+                                tableString += "<td class='" + cellClass + "'>" + i + "</td>";
+                            }
+                        }
+                        tableString += "</tr><tr>";
+                        for (i = 0; i < this.addressableMemory; i++) {
+                            cellClass = "";
+                            if (i % 2 === 0) {
+                                cellClass = "even";
+                            } else {
+                                cellClass = "odd";
+                            }
+                            tableString += "<td class='okMemory " + cellClass + "'><input type='text' size='1' class='okMemory " + i + "'></input></td>";
+                        }
+
+                        tableString += "</tr></table>";
+                        $("#prettyGoodComputerMemory").html(tableString);
+                        this.editor = ace.edit("prettyGoodComputerProgramEditor");
+                        this.editor.setTheme("ace/theme/clouds");
+                        var code = this.getUrlParameter("code")
+                        if(code){
+                            this.editor.setValue(code.replace(/\+/g, "\n"));
+                            this.editor.gotoLine(1);
+                            this.editor.selection.clearSelection();
+                        }                        
+                        $("#prettyGoodComputerRunProgramButton").click(this.runProgramButton.bind(this));
+                        $("#prettyGoodComputerBreakButton").click(this.breakButton.bind(this));
+                        $("#prettyGoodComputerShareButton").click(this.shareButton.bind(this));
+                    },
+                    getUrlParameter: function(sParam){
+                        var sPageURL = window.location.search.substring(1);
+                        var sURLVariables = sPageURL.split('&');
+                        for (var i = 0; i < sURLVariables.length; i++) 
+                        {
+                            var sParameterName = sURLVariables[i].split('=');
+                            if (sParameterName[0] == sParam) 
+                            {
+                                return sParameterName[1];
+                            }
+                        }
+                    },
+                    shareButton: function(){
+                          var code =  this.editor.getValue().replace(/(?:\r\n|\r|\n)/g,"_");
+                          $("#prettyGoodComputerCompilerMessages").html("<p>"+this.getShareableUrl()+"</p>");  
+                    },
+                    getShareableUrl: function(){
+                        return window.location.protocol + "//" + window.location.host + window.location.pathname + "?code="+this.editor.getValue().replace(/(?:\r\n|\r|\n)/g,"+");
+                    },
+                    breakButton: function () {
+                        this.brk = true;
+                    },
+                    runProgramButton: function () {
+                        console.log(this);
+                        this.brk = false;
+                        var programCode = this.editor.getValue().toLowerCase();
+                        var tokens = this.tokenize(programCode);
+                        var msgs = this.lint(tokens);
+                        if ("" !== msgs) {
+                            $("#prettyGoodComputerCompilerMessages").html("<p>" + msgs + "</p>");
+                        } else {
+                            this.run(tokens);
+                        }
+                    },
+
+                    run: function (tokens) {
+                        var counter = 0;
+                        var i = 0;
+                        var that = this;
+                        var interval = window.setInterval(function () {
+                            i = that.executeInstruction(tokens, i);
+                            if (that.brk || i == tokens.length) {
+                                console.log("clearing interval");
+                                window.clearInterval(interval);
+                            }
+                        }, 333);
+
+                    },
+                    executeInstruction: function (tokens, i) {
+                        var token = tokens[i];
+                        console.log(token);
+                        console.log(i);
+                        this.editor.gotoLine(i + 1);
+                        var address;
+                        var address1;
+                        var address2;
+                        var destination;
+                        var val;
+                        var val1;
+                        var val2;
+                        var instruction = token.substr(0, 1);
+                        if ("z" == instruction) {
+                            address = parseInt(token.substr(1), 10);
+                            $(".okMemory." + address).val("0");
+                        } else if ("i" == instruction) {
+                            address = parseInt(token.substr(1), 10);
+                            val = parseInt($(".okMemory." + address).val(), 10);
+                            if(isNaN(val)){
+                                $("#prettyGoodComputerCompilerMessages").html("<p>Attempting to increment uninitialized memory location " + address +", use z" + address + " first</p>");
+                                this.brk = true;
+                            }
+                            $(".okMemory." + address).val(val + 1);
+                        } else if ("j" == instruction) {
+                            vars = token.substr(1).split("!");
+                            address1 = parseInt(vars[0], 10);
+                            val1 = parseInt($(".okMemory." + address1).val(), 10);
+                            var vars2 = vars[1].split(")");
+                            address2 = parseInt(vars2[0], 10);
+                            val2 = parseInt($(".okMemory." + address2).val(), 10);
+                            destination = vars2[1];
+                            if (val1 !== val2) {
+                                i = destination - 2;
+                            }
+                        }
+                        i += 1;
+                        return i;
+                    },
+                    lint: function (tokens) {
+                        msgs = "";
+                        var wholeNumRegEx = /^\s*\d+\s*$/;
+                        for (var i = 0; i < tokens.length; i++) {
+                            var token = tokens[i];
+                            if (token.substr(0, 1) == "$") {
+                                //this is a comment
+                            } else if (token.substr(0, 1) == "z") {
+                                if (/\D+/.test(token.substr(1))) {
+                                    msgs += "line " + (i + 1) + ": " + token + " refers to non-whole number memory location: " + token.substr(1) + "\n";
+                                } else if (parseInt(token.substr(1), 10) < 0 || parseInt(token.substr(1), 10) >= this.addressableMemory) {
+                                    msgs += "line " + (i + 1) + ": " + token + " refers to a memory address " + token.substr(1) + " which is outside the addressable range of 0 to " + (this.addressableMemory - 1);
+                                }
+                            } else if (token.substr(0, 1) == "i") {
+                                if (/\D+/.test(token.substr(1))) {
+                                    msgs += "line " + (i + 1) + ": " + token + " refers to non-whole number memory location: " + token.substr(1) + "\n";
+                                } else if (parseInt(token.substr(1), 10) < 0 || parseInt(token.substr(1), 10) >= this.addressableMemory) {
+                                    msgs += "line " + (i + 1) + ": " + token + " refers to a memory address " + token.substr(1) + " which is outside the addressable range of 0 to " + (this.addressableMemory - 1);
+                                }
+                            } else if (token.substr(0, 1) == "j") {
+                                if (token.indexOf("!") >= 0 && token.indexOf(")") >= 0 && token.indexOf("!") < token.indexOf(")") && token.length >= 6) {
+                                    var vars = token.substr(1).split("!");
+                                    var vars2 = vars[1].split(")");
+                                    var address1 = parseInt(vars[0], 10);
+                                    var address2 = parseInt(vars2[0], 10);
+                                    var destination = parseInt(vars2[1], 10);
+                                    if (/\D+/.test(vars[0])) {
+                                        msgs += "line " + (i + 1) + ": " + destination + " refers to non-whole number memory location: " + address1 + "\n";
+                                    } else if (address1 < 0 || address1 >= this.addressableMemory) {
+                                        msgs += "line " + (i + 1) + ": " + token + " refers to a memory address " + address1 + " which is outside the addressable range of 0 to " + (this.addressableMemory - 1);
+                                    }
+                                    if (/\D+/.test(vars2[0])) {
+                                        msgs += "line " + (i + 1) + ": " + token + " refers to non-whole number memory location: " + address2 + "\n";
+                                    } else if (address2 < 0 || address2 >= this.addressableMemory) {
+                                        msgs += "line " + (i + 1) + ": " + token + " refers to a memory address " + address2 + " which is outside the addressable range of 0 to " + (this.addressableMemory - 1);
+                                    }
+                                    if (/\D+/.test(vars2[1])) {
+                                        msgs += "line " + (i + 1) + ": " + token + " refers to non-whole number line of code: " + destination + "\n";
+                                    } else {
+                                        if (this.editor.session.getLength() < destination || 1 > destination) {
+                                            msgs += "line " + (i + 1) + ": " + token + " refers a line of code that is outside the range 0 to " + this.editor.session.getLength() + "\n";
+                                        }
+                                    }
+                                } else {
+                                    msgs += "line " + (i + 1) + " is not of the proper form: jN?M>O where N, M and O are whole numbers";
+                                }
+                            } else {
+                                msgs += "line " + (i + 1) + ": " + token + " is not a recognized instruction\n";
+                            }
+                        }
+                        return msgs;
+                    },
+                tokenize: function (input) {
+                    var lineBreakToSpaces = input.replace(/(\r\n|\n|\r)/gm," ").replace(/\s+/g," ");
+                    console.log(lineBreakToSpaces);
+                    var result = lineBreakToSpaces.split(" ");
+                    console.log(result);
+                    return result;
+                    }
+
+                };
+                var bitlyOauth = "d6fcbca391fe4c34e937c6dbbf101d52f2e83800";
+                function share(){
+                    var url = "https://api-ssl.bitly.com/v3/shorten?access_token="+bitlyOauth+"&longUrl="+prettyGoodComputer.getShareableUrl();
+                    $.get(
+                        url, function(data){
+                        
+                        }
+                    );
+                }
+                
+                prettyGoodComputer.initialize();
+            });
+        </script
+    </head>
+    <body>
+        <div id="container">
+            <div class="left">
+                <h1>Pretty Good Computer</h1>
+                <h2>Instructions</h2>
+                <ul>
+                    <li>
+                        <b>z<em>n</em></b>
+                        <ul>
+                            <li>Zeros a memory location <em>n</em></li>
+                        </ul>
+                    </li>
+                    <li><b>i<em>n</em></b>
+                        <ul>
+                            <li>Increments a memory location <em>n</em></li>
+                        </ul>
+                    </li>
+                    <li><b>j<em>n</em>!<em>m</em>)<em>l</em></b>
+                        <ul>
+                            <li>Compares memory locations <em>n</em> and <em>m</em> for equality.  If <em>n</em> and <em>m</em> are equal, proceeds to the next line, otherwise goes to line <em>l</em></li>
+                        </ul>
+                    </li>
+                </ul>
+                <h2>Example Program</h2>
+                <p>z1<br>
+                z2<br>
+                i0<br>
+                i0<br>
+                i0<br>
+                i1<br>
+                j1!0)6</p>
+                http://slouchcou.ch/?p=318
+            </div>
+            <div class="right">
+                <div id="prettyGoodComputer"></div>
+            </div>
+        </div>
+    </body>
+</html>
