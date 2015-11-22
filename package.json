@@ -14,7 +14,10 @@
     "grunt-contrib-jshint": "*",
     "grunt-contrib-nodeunit": "*",
     "grunt-contrib-uglify": "*",
-    "grunt-contrib-concat": "*"
+    "grunt-contrib-concat": "*",
+    "grunt-processhtml'":"*",
+    "grunt-contrib-cssmin":"*",
+    "grunt-gh-pages":"*"
   },
   "bugs":{  "url" : "https://github.com/monknomo/pretty_good_computer/issues", 
             "email" : "monknomo@gmail.com"

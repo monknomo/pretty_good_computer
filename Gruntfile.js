@@ -21,14 +21,46 @@ module.exports = function(grunt) {
         src: 'build/<%= pkg.name %>.concat.js',
         dest: 'build/<%= pkg.name %>.min.js'
       }
+    },
+    cssmin: {
+        dist: {
+            files: [
+                {
+                    expand:true,
+                    cwd: '.',
+                    src: ['pretty_good_computer.css'],
+                    dest: 'build',
+                    ext: '.min.css'
+                }
+            ]
+        }
+    },
+    processhtml: {
+        options: {
+            
+        },
+        dist: {
+            files: {
+                'build/index.html': ['index.html']
+            }
+        }
+    },
+    'gh-pages':{
+        options:{
+            base: 'build'
+        },
+        src:['index.html']
     }
   });
 
   // Load the plugin that provides the "uglify" task.
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.loadNpmTasks('grunt-processhtml');
+  grunt.loadNpmTasks('grunt-contrib-cssmin');
+  grunt.loadNpmTasks('grunt-gh-pages');
 
   // Default task(s).
-  grunt.registerTask('default', ['concat','uglify']);
+  grunt.registerTask('default', ['concat','uglify','cssmin', 'processhtml','gh-pages']);
 
 };
